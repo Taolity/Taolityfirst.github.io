@@ -1,90 +1,214 @@
 <!DOCTYPE html>
-
 <html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta http-equiv="Refresh" Content="10; ./welcome.html">
-
-<title>The ZhiSheng's Website</title>
-<style type="text/css">
-    canvas {display: block;}
-	html
-	{
-	background:black;
-	margin:0px;
-	padding:0px;
-	border:0px;
-	height:100%;
-	width:100%;
-	overflow:hidden;
-	}
-</style>
+  <meta charset="utf-8" />
+  <title>计算 by Problue</title>
 </head>
 <body>
-  <canvas id="c">
-  <script type="text/javascript">
-		window.onload=function()
-		{
-			var c = document.getElementById("c");
-			var ctx = c.getContext("2d");
 
-			c.addEventListener('click', function(e)
-			{
-				location.href="./welcome.html";
-			}, false);
+<div id="space">
+</div>
 
-			//全屏显示
-			c.height = window.innerHeight;
-			c.width = window.innerWidth;
+<div id="now" style="position:absolute;top:810px;width:650px;">
+  当前数(<span id="base"></span>进制): <span id="nown"></span></br>
+  当前数(10进制): <span id="dcount"></span>
+</div>
+<div id="add" style="position:absolute;top:860px;width:650px;">
+  <button onclick="count()">手动加1</button>
+  <button id="autoSwitch" onclick="startstopAuto()">开始自动加1</button>
+  <button onclick="zero()">清零</button>
+</div>
+<div id="set" style="position:absolute;top:900px;width:650px;height:50px;">
+  长(Y):<input type="text" id="lengthInput" style="width:30px;"></input>
+  宽(X):<input type="text" id="widthInput" style="width:30px;"></input>
+  进制系统:<input type="text" id="baseInput" style="width:24px;"></input>
+  毫秒:<input type="text" id="msIntervalInput" style="width:30px;"></input>
+   
+  <button onclick="apply()">使用</button></br>
+</div>
 
-			var txts = "052あ7B8い甘GANE士CHENG成う1え9お甘かき士くけこ成EFCADG甘HIJK士LMNO成PQRSTU甘VWXYZE士FCADGH成IJKLM";
-			txts = txts.split("");
-
-			var font_size = 28;
-			var columns = c.width/font_size;
-
-			//每行要输出数组
-			var drops = [];
-
-			for(var x = 0; x < columns; x++)
-				drops[x] = 1;
-
-			//字符随机颜色
-			var wh_color = new Array();
-			wh_color[0]="#57CE13";
-			wh_color[1]="#50BF7F";
-			wh_color[2]="#50BF7F";
-
-			//绘出字符
-			function draw()
-			{
-				//黑色背景，半透明显示
-				ctx.fillStyle = "rgba(0, 0, 0, 0.09)";
-				ctx.fillRect(0, 0, c.width, c.height);
-
-				//ctx.fillStyle = "#50BF7F";
-				ctx.fillStyle = wh_color[parseInt(Math.random()*100+1)%3];
-				ctx.font = font_size + "px arial";
-
-				//drops循环
-				for(var i = 0; i < drops.length; i++)
-				{
-					//随机打印字符
-					var text = txts[Math.floor(Math.random()*txts.length)];
-
-					//x = i*font_size
-					//y = value of drops[i]*font_size
-					ctx.fillText(text, i*font_size, drops[i]*font_size);
-
-					if(drops[i]*font_size > c.height || Math.random() > 0.95)
-						drops[i] = 0;
-
-					//Y坐标增加
-					drops[i]++;
-				}
-			}
-			setInterval(draw, 50);
-		}
+<script>
+var symbolTable = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'];
+var base = 2;
+var length = 10;
+var width = 10;
+var maxn = Math.pow(base, width);
+if(maxn == 1) {
+  maxn = width;
+}
+var dcount = 0;
+var space = [];//最左记录高位,最右记录低位
+var timer = null;
+var msInterval = 100;
+initSpace();
+zeroClear();
+redraw();
+function initSpace() {
+  var spaceDiv = $('#space');
+  spaceDiv.innerHTML = '';
+  spaceDiv.style.position = 'relative';
+  for(var i = 0; i < width; i++) {
+    var div = document.createElement('div');
+    div.style.width = '18px';
+    div.style.float = 'left';
+    for(var j = 0; j < length; j++) {
+      var div1 = document.createElement('div');
+      div1.style.height = '13px';
+      div1.style.textAlign = 'center';
+      var input = document.createElement('input');
+      input.type = 'radio';
+      div1.appendChild(input);
+      div.appendChild(div1);
+    }
+    var div2 = document.createElement('div');
+    div2.id = 'col' + (width - 1 - i);
+    div2.style.height = '13px';
+    div2.style.width = '18px';
+    div2.style.textAlign = 'center';
+    div.appendChild(div2);
+    spaceDiv.appendChild(div);
+  }
+  $('#now').style.top = (13 * length + 30) + 'px';
+  $('#add').style.top = (13 * length + 80) + 'px';
+  $('#set').style.top = (13 * length + 120) + 'px';
+}
+function zero() {
+  startstopAuto('stop');
+  zeroClear();
+  redraw();
+}
+function apply() {
+  startstopAuto('stop');
+  var inputval = parseInt($('#lengthInput').value);
+  var isNewLength = inputval != length;
+  if(isNewLength) {
+    length = inputval;
+  }
+  var inputval = parseInt($('#widthInput').value);
+  var isNewWidth = inputval != width;
+  if(isNewWidth) {
+    width = inputval;
+    space.length = 0;
+    for(var i = 0; i < width; i++) {
+      space.push(0);
+    }
+  }
+  if(isNewLength || isNewWidth) {
+    initSpace();
+  }
+  var inputval = parseInt($('#baseInput').value);
+  //var isNewBase = inputval != base;
+  if(isNaN(inputval)) {
+    inputval = 2;
+  } else {
+    if(inputval < 1) {
+      inputval = 1;
+    }
+    if(inputval > length) {
+      inputval = length;
+    }
+  }
+  base = inputval;
+  maxn = Math.pow(base, width);
+  if(maxn == 1) {
+    maxn = width;
+  }
+  
+  var inputval = $('#msIntervalInput').value;
+  //var isNewMSInterval = inputval != msInterval;
+  if(isNaN(inputval)) {
+    inputval = 100;
+  } else {
+    inputval = Math.abs(inputval);
+  }
+  msInterval = inputval;
+  zeroClear();
+  redraw();
+}
+function zeroClear() {
+  for(var i = 0; i < width; i++) {
+    space[i] = 0;
+  }
+  dcount = 0;
+}
+function count() {
+  if(dcount == maxn) {
+    zeroClear();
+    redraw();
+    if(timer) {
+      startstopAuto('stop');
+      startstopAuto('start');
+    }
+    return;
+  }
+  dcount++;
+  
+  if(base > 1) {
+    space[0]++;
+    for(var p = 0; p < width - 1; p++) {
+      if(space[p] == base) {
+        space[p + 1]++;
+      }
+    }
+    for(var p = 0; p < width; p++) {
+      if(space[p] == base) {
+        space[p] = 0;
+      }
+    }
+  } else {
+    for(var p = 0; p < width; p++) {
+      space[p] = 0;
+    }
+    space[dcount - 1] = 1;
+  }
+  redraw();
+}
+function startstopAuto(action) {
+  if(action == 'stop' || timer) {
+    clearInterval(timer);
+    timer = null;
+    $('#autoSwitch').innerHTML = '开始自动加1';
+  } else {
+    timer = setInterval(count, msInterval);
+    $('#autoSwitch').innerHTML = '暂停自动加1';
+  }
+}
+function redraw() {
+  for(var p = 0; p < width; p++) {
+    var radios = $('#space').children[width - 1 - p].getElementsByTagName('input');
+    for(var i = 0; i < radios.length; i++) {
+      radios[i].checked = false;
+    }
+    for(var n = 0; n < space[p]; n++) {
+      radios[radios.length - 1 - n].checked = true;
+    }
+  }
+  
+  var nown = [];
+  for(var p = 0; p < width; p++) {
+    var sym; 
+    if(base <= 16) {
+        sym = symbolTable[space[p]];
+    } else {
+        sym = space[p];
+    }
+    $('#col' + p).innerHTML = sym;
+    nown.push(sym);
+  }
+  $('#nown').innerHTML = nown.slice().reverse().join('');
+  $('#base').innerHTML = base < 10 ? '0' + base : base;
+  var zeros = '';
+  for(var n = width - dcount.toString().length; n > 0; n--)
+    zeros += '0';
+  $('#dcount').innerHTML = zeros + dcount;
+  $('#baseInput').value = base;
+  $('#msIntervalInput').value = msInterval;
+  $('#widthInput').value = width;
+  $('#lengthInput').value = length;
+}
+function $(selector) {
+  return document.getElementById(selector.substring(1));
+}
 </script>
 </body>
 </html>
