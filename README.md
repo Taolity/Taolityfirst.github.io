@@ -1,5 +1,5 @@
 # Taolity.github.io
-my blog website
+# My blog website
 
-Faithful to my heart,
-fruitful to my result
+# Faithful to my heart,
+# fruitful to my result
