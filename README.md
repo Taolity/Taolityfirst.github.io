@@ -1,5 +1,4 @@
 # Taolity.github.io
 
 
-# Faithful to my heart,
-# fruitful to my result
+# Faithful to my heart, fruitful to my result.
